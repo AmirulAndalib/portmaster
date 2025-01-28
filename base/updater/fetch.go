@@ -17,6 +17,7 @@ import (
 	"github.com/safing/jess/filesig"
 	"github.com/safing/jess/lhash"
 	"github.com/safing/portmaster/base/log"
+	"github.com/safing/portmaster/base/utils"
 	"github.com/safing/portmaster/base/utils/renameio"
 )
 
@@ -136,12 +137,10 @@ func (reg *ResourceRegistry) fetchFile(ctx context.Context, client *http.Client,
 		return fmt.Errorf("%s: failed to finalize file %s: %w", reg.Name, rv.storagePath(), err)
 	}
 	// set permissions
-	if !onWindows {
-		// TODO: only set executable files to 0755, set other to 0644
-		err = os.Chmod(rv.storagePath(), 0o0755) //nolint:gosec // See TODO above.
-		if err != nil {
-			log.Warningf("%s: failed to set permissions on downloaded file %s: %s", reg.Name, rv.storagePath(), err)
-		}
+	// TODO: distinguish between executable and non executable files.
+	err = utils.SetExecPermission(rv.storagePath(), utils.PublicReadPermission)
+	if err != nil {
+		log.Warningf("%s: failed to set permissions on downloaded file %s: %s", reg.Name, rv.storagePath(), err)
 	}
 
 	log.Debugf("%s: fetched %s and stored to %s", reg.Name, downloadURL, rv.storagePath())

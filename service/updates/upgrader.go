@@ -20,6 +20,7 @@ import (
 	"github.com/safing/portmaster/base/notifications"
 	"github.com/safing/portmaster/base/rng"
 	"github.com/safing/portmaster/base/updater"
+	"github.com/safing/portmaster/base/utils"
 	"github.com/safing/portmaster/base/utils/renameio"
 	"github.com/safing/portmaster/service/mgr"
 	"github.com/safing/portmaster/service/updates/helper"
@@ -349,13 +350,16 @@ func upgradeBinary(fileToUpgrade string, file *updater.File) error {
 	}
 
 	// check permissions
-	if !onWindows {
+	if onWindows {
+		_ = utils.SetExecPermission(fileToUpgrade, utils.PublicReadPermission)
+	} else {
+		perm := utils.PublicReadPermission
 		info, err := os.Stat(fileToUpgrade)
 		if err != nil {
 			return fmt.Errorf("failed to get file info on %s: %w", fileToUpgrade, err)
 		}
-		if info.Mode() != 0o0755 {
-			err := os.Chmod(fileToUpgrade, 0o0755) //nolint:gosec // Set execute permissions.
+		if info.Mode() != perm.AsUnixDirExecPermission() {
+			err = utils.SetExecPermission(fileToUpgrade, perm)
 			if err != nil {
 				return fmt.Errorf("failed to set permissions on %s: %w", fileToUpgrade, err)
 			}
